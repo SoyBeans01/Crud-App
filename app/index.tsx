@@ -7,9 +7,20 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-import Animated, {LinearTransition} from 'react-native-reanimated';
+import Animated, { LinearTransition } from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const data = ([
+            { id: 1, name: "Set up the new computer", completed: false },
+            { id: 2, name: "Research for the article", completed: false },
+            { id: 3, name: "Pay the bills", completed: false },
+            { id: 4, name: "Take care of car", completed: false },
+            { id: 5, name: "Finish presentation", completed: false },
+            { id: 6, name: "Cook dinner", completed: false },
+            { id: 7, name: "Visit the doctor", completed: false },
+            { id: 8, name: "Attend the meeting", completed: false },])
 
 export default function HomeScreen() {
 
@@ -18,33 +29,54 @@ export default function HomeScreen() {
     name: string,
     completed: boolean,
   }
-  const [toDoList, setTodo] = useState<Item[]>([
-    { id: 1, name: "Set up the new computer", completed: false},
-    { id: 2, name: "Research for the article", completed: false},
-    { id: 3, name: "Pay the bills" , completed: false},
-    { id: 4, name: "Take care of car", completed: false},
-    { id: 5, name: "Finish presentation", completed: false},
-    { id: 6, name: "Cook dinner", completed: false},
-    { id: 7, name: "Visit the doctor", completed: false},
-    { id: 8, name: "Attend the meeting", completed: false},
-  ]);
+  const [toDoList, setTodo] = useState<Item[]>([]);
 
-  //const [isCrossedOff, setIsCrossedOff] = useState();
   const [newName, setNewName] = useState('');
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem("TodoApp") //????
+        const toDoStorage = jsonValue != null ? JSON.parse(jsonValue) : null
 
-  
+        if (toDoStorage && toDoStorage.length) {
+          setTodo(toDoStorage)
+        }
+        else {
+          setTodo(data)
+        }
+
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    fetchData()
+    console.log("data has been FETCHED")
+  }, [])
+
+  useEffect(() => {
+    const storeToDo = async () => {
+      try {
+        const jsonValue = JSON.stringify(toDoList)
+        await AsyncStorage.setItem("TodoApp", jsonValue)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    storeToDo()
+    console.log("data has been STORED")
+  }, [toDoList])
 
   const addItem = () => {
-    if(newName != ""){
-    let newId: number = (toDoList.length > 0 ? toDoList[toDoList.length - 1].id + 1: 1);
-    const newItem: Item = { id: newId, name: newName, completed: false }
-    toDoList.push(newItem);
-    setNewName('');
-  }
+    if (newName != "") {
+      let newId: number = (toDoList.length > 0 ? toDoList[toDoList.length - 1].id + 1 : 1);
+      const newItem: Item = { id: newId, name: newName, completed: false }
+      setTodo([...toDoList, newItem])
+      setNewName('');
+    }
   }
   const crossOffItem = (clickedId: number) => {
-    setTodo(toDoList.map(item => item.id === clickedId ? {...item, completed: !item.completed}: item));
+    setTodo(toDoList.map(item => item.id === clickedId ? { ...item, completed: !item.completed } : item));
   }
 
   const deleteItem = (clickedId: number) => {
